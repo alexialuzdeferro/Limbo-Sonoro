@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Limbo Sonoro — Anatomia do Abismo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@300;400;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --void:    #050406;
+      --deep:    #0d0b0f;
+      --surface: #130f17;
+      --ash:     #2a2230;
+      --smoke:   #4a4055;
+      --bone:    #c8bfb0;
+      --parchment: #e0d5c5;
+      --blood:   #7a1a1a;
+      --ember:   #b84a00;
+      --glow:    #d4956a;
+      --fade:    rgba(200,180,160,0.06);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--void);
+      color: var(--bone);
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 18px;
+      line-height: 1.7;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+
+    /* ── NOISE TEXTURE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 200px;
+      opacity: 0.4;
+      mix-blend-mode: overlay;
+    }
+
+    /* ── CONTENT WARNING OVERLAY ── */
+    #cw-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--void);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      padding: 2rem;
+      animation: fadeIn 0.8s ease forwards;
+    }
+    #cw-overlay .cw-sigil {
+      font-size: 3rem;
+      opacity: 0.5;
+      margin-bottom: 2rem;
+      animation: breathe 3s ease-in-out infinite;
+    }
+    #cw-overlay h2 {
+      font-family: 'Cormorant SC', serif;
+      font-size: clamp(1.1rem, 3vw, 1.4rem);
+      font-weight: 300;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--glow);
+      margin-bottom: 2rem;
+    }
+    #cw-overlay p {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+      color: var(--bone);
+      max-width: 520px;
+      line-height: 1.9;
+      margin-bottom: 0.8rem;
+      opacity: 0.85;
+    }
+    #cw-overlay .cw-tags {
+      display: flex; gap: 0.6rem; flex-wrap: wrap;
+      justify-content: center;
+      margin: 1.6rem 0;
+    }
+    #cw-overlay .cw-tags span {
+      font-family: 'Cormorant SC', serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      padding: 0.3em 0.9em;
+      border: 1px solid rgba(180,120,80,0.3);
+      color: rgba(200,180,150,0.6);
+    }
+    #cw-btn {
+      margin-top: 2.5rem;
+      background: none;
+      border: 1px solid rgba(210,149,106,0.4);
+      color: var(--glow);
+      font-family: 'Cormorant SC', serif;
+      font-size: 0.85rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      padding: 0.9em 2.8em;
+      cursor: pointer;
+      transition: all 0.4s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    #cw-btn::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: var(--blood);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s ease;
+      z-index: -1;
+    }
+    #cw-btn:hover { color: var(--parchment); border-color: transparent; }
+    #cw-btn:hover::before { transform: scaleX(1); }
+    #cw-overlay .cw-divider {
+      width: 60px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--blood), transparent);
+      margin: 1.5rem auto;
+    }
+
+    /* ── CANVAS (particles) ── */
+    #void-canvas {
+      position: fixed; inset: 0; z-index: 1;
+      pointer-events: none;
+      opacity: 0.55;
+    }
+
+    /* ── PAGE WRAPPER ── */
+    .page { position: relative; z-index: 2; }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 6rem 2rem 4rem;
+      position: relative;
+    }
+    .hero-eyebrow {
+      font-family: 'Cormorant SC', serif;
+      font-size: clamp(0.65rem, 1.5vw, 0.75rem);
+      letter-spacing: 0.45em;
+      text-transform: uppercase;
+      color: var(--smoke);
+      margin-bottom: 2.5rem;
+      animation: slideDown 1.2s ease 0.3s both;
+    }
+    .hero-title {
+      font-family: 'Cormorant SC', serif;
+      font-weight: 300;
+      font-size: clamp(2.8rem, 8vw, 7rem);
+      line-height: 0.95;
+      color: var(--parchment);
+      letter-spacing: 0.03em;
+      margin-bottom: 0.3em;
+      animation: slideDown 1.2s ease 0.5s both;
+    }
+    .hero-title span {
+      display: block;
+      font-size: 0.42em;
+      letter-spacing: 0.25em;
+      color: var(--blood);
+      margin-top: 0.6em;
+      font-weight: 600;
+    }
+    .hero-dash {
+      width: 1px;
+      height: 80px;
+      background: linear-gradient(to bottom, var(--blood), transparent);
+      margin: 2.5rem auto;
+      animation: extendLine 1.5s ease 0.9s both;
+    }
+    .hero-author {
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+      color: var(--glow);
+      opacity: 0.8;
+      animation: fadeIn 1.2s ease 1.1s both;
+      letter-spacing: 0.05em;
+    }
+    .hero-slogan {
+      margin-top: 3rem;
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: rgba(200,180,160,0.45);
+      max-width: 560px;
+      line-height: 1.6;
+      animation: fadeIn 1.2s ease 1.4s both;
+    }
+    .hero-scroll {
+      position: absolute; bottom: 2.5rem; left: 50%;
+      transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+      animation: fadeIn 1.5s ease 2s both;
+    }
+    .hero-scroll span {
+      font-family: 'Cormorant SC', serif;
+      font-size: 0.6rem;
+      letter-spacing: 0.35em;
+      color: var(--ash);
+    }
+    .hero-scroll-line {
+      width: 1px; height: 40px;
+      background: linear-gradient(to bottom, var(--ash), transparent);
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+
+    /* ── DIVIDER ── */
+    .section-divider {
+      display: flex; align-items: center; gap: 1.5rem;
+      padding: 0 2rem;
+      max-width: 900px; margin: 0 auto;
+    }
+    .section-divider::before, .section-divider::after {
+      content: '';
+      flex: 1; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--ash));
+    }
+    .section-divider::after { background: linear-gradient(90deg, var(--ash), transparent); }
+    .section-divider-glyph {
+      font-size: 0.7rem;
+      color: var(--blood);
+      letter-spacing: 0.3em;
+    }
+
+    /* ── ABOUT ── */
+    .about {
+      padding: 7rem 2rem;
+      max-width: 780px;
+      margin: 0 auto;
+    }
+    .section-label {
+      font-family: 'Cormorant SC', serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.5em;
+      text-transform: uppercase;
+      color: var(--blood);
+      display: block;
+      margin-bottom: 2rem;
+    }
+    .about-body {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.15rem, 2.5vw, 1.35rem);
+      line-height: 1.85;
+      color: var(--bone);
+      font-weight: 300;
+    }
+    .about-body strong {
+      font-weight: 400;
+      color: var(--parchment);
+    }
+    .about-body em {
+      color: var(--glow);
+      font-style: italic;
+    }
+    .about-pull {
+      margin: 3rem 0;
+      padding: 2.5rem 0 2.5rem 2rem;
+      border-left: 2px solid var(--blood);
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      font-size: clamp(1.25rem, 3vw, 1.65rem);
+      color: var(--parchment);
+      line-height: 1.55;
+      position: relative;
+    }
+    .about-pull::before {
+      content: '\201C';
+      position: absolute; top: -0.3em; left: 1.5rem;
+      font-size: 4rem;
+      color: var(--blood);
+      opacity: 0.4;
+      font-family: Georgia, serif;
+      line-height: 1;
+    }
+
+    /* ── SPOTIFY ── */
+    .listen {
+      padding: 5rem 2rem 7rem;
+      max-width: 780px;
+      margin: 0 auto;
+    }
+    .listen-header {
+      display: flex; align-items: baseline; gap: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+    .listen h2 {
+      font-family: 'Cormorant SC', serif;
+      font-weight: 300;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      color: var(--parchment);
+      letter-spacing: 0.06em;
+    }
+    .spotify-badge {
+      font-family: 'Cormorant SC', serif;
+      font-size: 0.6rem;
+      letter-spacing: 0.3em;
+      padding: 0.3em 0.8em;
+      border: 1px solid rgba(30,215,96,0.3);
+      color: rgba(30,215,96,0.6);
+    }
+    .spotify-frame {
+      border: 1px solid var(--ash);
+      position: relative;
+      background: var(--surface);
+    }
+    .spotify-frame::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      background: linear-gradient(135deg, var(--blood), transparent 50%, transparent 80%, var(--ash));
+      z-index: -1;
+    }
+    .spotify-frame iframe {
+      display: block; width: 100%;
+      border: none;
+      background: transparent;
+    }
+
+    /* ── MANIFESTO ── */
+    .manifesto {
+      padding: 6rem 2rem;
+      text-align: center;
+      position: relative;
+    }
+    .manifesto::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at center, rgba(122,26,26,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .manifesto-inner { max-width: 680px; margin: 0 auto; }
+    .manifesto-glyph {
+      font-size: 2.5rem;
+      opacity: 0.2;
+      margin-bottom: 2rem;
+      display: block;
+    }
+    .manifesto h3 {
+      font-family: 'IM Fell English', serif;
+      font-style: italic;
+      font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+      color: var(--parchment);
+      line-height: 1.4;
+      margin-bottom: 2rem;
+    }
+    .manifesto p {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: rgba(200,180,160,0.6);
+      font-style: italic;
+      line-height: 1.85;
+    }
+    .manifesto-slogan {
+      display: inline-block;
+      margin-top: 3rem;
+      font-family: 'Cormorant SC', serif;
+      font-size: clamp(0.75rem, 2vw, 0.95rem);
+      letter-spacing: 0.3em;
+      color: var(--glow);
+      padding: 1em 2em;
+      border: 1px solid rgba(210,149,106,0.2);
+      text-transform: uppercase;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 4rem 2rem;
+      text-align: center;
+      border-top: 1px solid var(--ash);
+    }
+    footer p {
+      font-family: 'Cormorant SC', serif;
+      font-size: 0.65rem;
+      letter-spacing: 0.35em;
+      color: var(--smoke);
+    }
+    footer .footer-name {
+      color: var(--glow);
+      opacity: 0.7;
+    }
+
+    /* ── GLOW CURSOR ── */
+    .cursor-glow {
+      position: fixed;
+      width: 300px; height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(122,26,26,0.06) 0%, transparent 70%);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 1;
+      transition: opacity 0.3s;
+    }
+
+    /* ── KEYFRAMES ── */
+    @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-20px) }
+      to   { opacity: 1; transform: translateY(0) }
+    }
+    @keyframes extendLine {
+      from { transform: scaleY(0); opacity: 0 }
+      to   { transform: scaleY(1); opacity: 1 }
+    }
+    @keyframes breathe {
+      0%, 100% { opacity: 0.3; transform: scale(1) }
+      50%       { opacity: 0.6; transform: scale(1.08) }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3 }
+      50%       { opacity: 0.8 }
+    }
+    @keyframes flicker {
+      0%, 100% { opacity: 1 }
+      92%       { opacity: 1 }
+      93%       { opacity: 0.4 }
+      94%       { opacity: 1 }
+      97%       { opacity: 0.6 }
+      98%       { opacity: 1 }
+    }
+    .hero-title { animation: slideDown 1.2s ease 0.5s both, flicker 8s ease 3s infinite; }
+
+    /* ── REVEAL ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.9s ease, transform 0.9s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<!-- CURSOR GLOW -->
+<div class="cursor-glow" id="cursorGlow"></div>
+
+<!-- CONTENT WARNING -->
+<div id="cw-overlay">
+  <div class="cw-sigil">🖤</div>
+  <h2>Aviso de Conteúdo</h2>
+  <div class="cw-divider"></div>
+  <p>Este podcast contém temas sensíveis como morte, colapso emocional, experiências liminares e sofrimento psíquico.</p>
+  <p>O conteúdo é <strong style="color:var(--glow);font-style:normal">artístico e autobiográfico</strong>. Ouça com consciência.</p>
+  <div class="cw-tags">
+    <span>morte</span>
+    <span>colapso emocional</span>
+    <span>liminaridade</span>
+    <span>sofrimento psíquico</span>
+    <span>conteúdo autobiográfico</span>
+  </div>
+  <button id="cw-btn" onclick="dismissCW()">Eu entendo — entrar no limbo</button>
+</div>
+
+<!-- PARTICLE CANVAS -->
+<canvas id="void-canvas"></canvas>
+
+<!-- PAGE -->
+<div class="page" id="main-page" style="opacity:0; transition: opacity 1.2s ease;">
+
+  <!-- HERO -->
+  <section class="hero">
+    <p class="hero-eyebrow">Um podcast de Alexia Melusine</p>
+    <h1 class="hero-title">
+      Limbo Sonoro
+      <span>Anatomia do Abismo</span>
+    </h1>
+    <div class="hero-dash"></div>
+    <p class="hero-author">conduzido por Alexia Melusine</p>
+    <p class="hero-slogan">
+      "Porque alguns abismos não se superam — apenas se narram."
+    </p>
+    <div class="hero-scroll">
+      <div class="hero-scroll-line"></div>
+      <span>descer</span>
+    </div>
+  </section>
+
+  <div class="section-divider"><span class="section-divider-glyph">✦ ✦ ✦</span></div>
+
+  <!-- ABOUT -->
+  <section class="about reveal">
+    <span class="section-label">Sobre o projeto</span>
+    <div class="about-body">
+      <p>
+        Sejam muito bem-vindos ao <strong>Limbo Sonoro — Anatomia do Abismo</strong>, um podcast de tom visceral conduzido por <em>Alexia Melusine</em>.
+      </p>
+      <div class="about-pull">
+        Este projeto dedica-se a mergulhar em textos escritos há mais de três décadas, que funcionam como verdadeiras cápsulas de memória de uma época passada.
+      </div>
+      <p>
+        Cada episódio é uma descida deliberada. Uma autópsia de palavras que sobreviveram ao tempo, ao esquecimento e ao peso daquilo que não se disse em voz alta. O abismo aqui não é metáfora — é a substância do que se ouve.
+      </p>
+    </div>
+  </section>
+
+  <div class="section-divider reveal"><span class="section-divider-glyph">✦</span></div>
+
+  <!-- SPOTIFY PLAYER -->
+  <section class="listen reveal">
+    <div class="listen-header">
+      <h2>Ouça agora</h2>
+      <span class="spotify-badge">Spotify</span>
+    </div>
+    <div class="spotify-frame">
+      <iframe
+        src="https://open.spotify.com/embed/show/6ahRd7QT2wcq7ldt5CJHZW?utm_source=generator&theme=0"
+        width="100%"
+        height="352"
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        loading="lazy"
+      ></iframe>
+    </div>
+  </section>
+
+  <div class="section-divider reveal"><span class="section-divider-glyph">✦ ✦ ✦</span></div>
+
+  <!-- MANIFESTO -->
+  <section class="manifesto reveal">
+    <div class="manifesto-inner">
+      <span class="manifesto-glyph">🌑</span>
+      <h3>"Onde o som é ponte para lugares onde nunca voltamos."</h3>
+      <p>
+        Textos que deveriam ter ficado enterrados. Vozes que deveriam ter silenciado.
+        Memórias que insistem em ter forma, peso, respiração.
+        Aqui, elas encontram a única forma que sabem habitar — a das palavras ditas em voz baixa, no escuro.
+      </p>
+      <span class="manifesto-slogan">Alguns abismos não se superam — apenas se narram</span>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="reveal">
+    <p>
+      <span class="footer-name">Limbo Sonoro — Anatomia do Abismo</span><br/><br/>
+      Um projeto de <span class="footer-name">Alexia Melusine</span><br/>
+      Conteúdo artístico e autobiográfico · Ouça com consciência
+    </p>
+  </footer>
+
+</div><!-- .page -->
+
+<script>
+  /* ── CONTENT WARNING DISMISS ── */
+  function dismissCW() {
+    const ov = document.getElementById('cw-overlay');
+    ov.style.transition = 'opacity 1.2s ease';
+    ov.style.opacity = '0';
+    setTimeout(() => {
+      ov.style.display = 'none';
+      const page = document.getElementById('main-page');
+      page.style.opacity = '1';
+    }, 1200);
+  }
+
+  /* ── CURSOR GLOW ── */
+  const glow = document.getElementById('cursorGlow');
+  document.addEventListener('mousemove', e => {
+    glow.style.left = e.clientX + 'px';
+    glow.style.top  = e.clientY + 'px';
+  });
+
+  /* ── ASH PARTICLE CANVAS ── */
+  const canvas = document.getElementById('void-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  class Particle {
+    constructor() { this.reset(true); }
+    reset(initial = false) {
+      this.x    = Math.random() * W;
+      this.y    = initial ? Math.random() * H : -10;
+      this.size = Math.random() * 1.8 + 0.3;
+      this.speed= Math.random() * 0.4 + 0.1;
+      this.drift= (Math.random() - 0.5) * 0.3;
+      this.alpha= Math.random() * 0.35 + 0.05;
+      this.life = 0;
+      this.maxLife = Math.random() * 400 + 200;
+    }
+    update() {
+      this.y += this.speed;
+      this.x += this.drift;
+      this.life++;
+      if (this.y > H + 10 || this.life > this.maxLife) this.reset();
+    }
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200,170,140,${this.alpha * (1 - this.life/this.maxLife)})`;
+      ctx.fill();
+    }
+  }
+
+  for (let i = 0; i < 90; i++) particles.push(new Particle());
+
+  function loop() {
+    ctx.clearRect(0, 0, W, H);
+    particles.forEach(p => { p.update(); p.draw(); });
+    requestAnimationFrame(loop);
+  }
+  loop();
+
+  /* ── SCROLL REVEAL ── */
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  reveals.forEach(r => observer.observe(r));
+</script>
+</body>
+</html>
